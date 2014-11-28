@@ -1,7 +1,7 @@
 all: ppm
 
-ppm: ppm.c imagefunctions.out
-	gcc -o ppm ppm.c imagefunction.out
+ppm: ppm.cpp imagefunctions.o
+	g++ -Wall -c ppm ppm.cpp imagefunctions.o
 
-imagefunctions: imagefunctions.h imagefunctions.c
-	gcc -o imagefunctions.out imagefunctions.c
+imagefunctions.o: imagefunctions.h imagefunctions.cpp
+	g++ -c -Wall -o imagefunctions.o imagefunctions.cpp
