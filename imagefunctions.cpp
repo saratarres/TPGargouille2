@@ -9,7 +9,16 @@
 //============================================================================
 //                           Function declarations
 //============================================================================
-void ppm_write_to_file(int width, int height, unsigned char* data, char * namefile)
+
+Image::Image(const Image& original_img){
+  width=original_img.get_Width();
+  height=original_img.get_Height();
+  data=new unsigned char [3*width*height];
+  memcpy(data, original_img.get_Data(), 3 *width *height* sizeof(*data));
+
+}
+
+void Image::ppm_write_to_file(char * namefile)
 {
   FILE * ppm_output;
   ppm_output= fopen(namefile, "wb");
@@ -23,26 +32,27 @@ void ppm_write_to_file(int width, int height, unsigned char* data, char * namefi
   fclose(ppm_output);
 }
 
-void ppm_read_from_file(int *width, int *height, unsigned char** data, char * namefile)
+void Image::ppm_read_from_file(char * namefile)
 {
   // Open file
   FILE * ppm_input;
   ppm_input=fopen(namefile, "rb");
     
   // Read file header
-  fscanf(ppm_input, "P6\n%d %d\n255\n", width, height);
+  fscanf(ppm_input, "P6\n%d %d\n255\n", &width, &height);
     
   // Allocate memory according to width and height
-  *data = (unsigned char*) malloc(3 * (*width) * (*height) * sizeof(**data));
+
+  data = new unsigned char [3*(width)*(height)];
 
   // Read the actual image data
-  fread(*data, 3, (*width) * (*height), ppm_input);
+  fread(data, 3, (width) * (height), ppm_input);
     
   // Close file
   fclose(ppm_input);
 }
 
-void ppm_desaturate(unsigned char* image, int width, int height)
+void Image::ppm_desaturate()
 {
   int x, y;
 
@@ -57,23 +67,23 @@ void ppm_desaturate(unsigned char* image, int width, int height)
       // Compute the grey level
       for (rgb_canal = 0 ; rgb_canal < 3 ; rgb_canal++)
       {
-        grey_lvl += image[ 3 * (y * width + x) + rgb_canal ];
+        grey_lvl += data[ 3 * (y * width + x) + rgb_canal ];
       }
       grey_lvl /= 3;
       assert(grey_lvl >= 0 && grey_lvl <=255);
 
       // Set the corresponding pixel's value in new_image
-      memset(&image[3 * (y * width + x)], grey_lvl, 3);
+      memset(&data[3 * (y * width + x)], grey_lvl, 3);
     }
   }
 }
 
-void ppm_shrink(unsigned char** image, int *width, int *height, int factor)
+void Image::ppm_shrink(int factor)
 {
   // Compute new image size and allocate memory for the new image
-  int new_width   = (*width) / factor;
-  int new_height  = (*height) / factor;
-  unsigned char* new_image = (unsigned char*) malloc(3 * new_width * new_height * sizeof(*new_image));
+  int new_width   = width / factor;
+  int new_height  = height / factor;
+  unsigned char* new_image = new unsigned char [3 * new_width * new_height];
 
   // Precompute factor^2 (for performance reasons)
   int factor_squared = factor * factor;
@@ -96,7 +106,7 @@ void ppm_shrink(unsigned char** image, int *width, int *height, int factor)
       // model image corresponding to the pixel we are creating
       int x0 = x * factor;
       int y0 = y * factor;
-      int i0 = 3 * (y0 * (*width) + x0);
+      int i0 = 3 * (y0 * width + x0);
 
       // Compute RGB values for the new pixel
       int dx, dy;
@@ -106,12 +116,12 @@ void ppm_shrink(unsigned char** image, int *width, int *height, int factor)
         {
           // Compute the offset of the current pixel (in the model image)
           // with regard to the top-left pixel of the current "set of pixels"
-          int delta_i = 3 * (dy * (*width) + dx);
+          int delta_i = 3 * (dy * width + dx);
 
           // Accumulate RGB values
-          red   += (*image)[i0+delta_i];
-          green += (*image)[i0+delta_i+1];
-          blue  += (*image)[i0+delta_i+2];
+          red   += data[i0+delta_i];
+          green += data[i0+delta_i+1];
+          blue  += data[i0+delta_i+2];
         }
       }
 
@@ -128,12 +138,11 @@ void ppm_shrink(unsigned char** image, int *width, int *height, int factor)
   }
 
   // Update image size
-  *width  = new_width;
-  *height = new_height;
+  width  = new_width;
+  height = new_height;
 
   // Update image
-  free(*image);
-  *image = new_image;
+  delete [] data;
 }
 
 
